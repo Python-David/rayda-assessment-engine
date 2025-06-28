@@ -1,0 +1,38 @@
+from fastapi import FastAPI
+from contextlib import asynccontextmanager
+
+from app.api import user, org
+from app.commands.migrate import run_migrations
+from app.commands.bootstrap import create_initial_superadmin
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.utils.logger import get_logger
+
+logger = get_logger("startup")
+
+@asynccontextmanager
+async def lifespan(app_instance: FastAPI):
+    logger.info("Starting application initialization...")
+    try:
+        run_migrations()
+        create_initial_superadmin()
+        logger.info("Application initialization completed successfully!")
+    except Exception as e:
+        logger.error(f"Failed to initialize application: {e}")
+        raise
+
+    yield
+    logger.info("Application shutting down...")
+
+app = FastAPI(title="Multi-Tenant SaaS Platform", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(org.router, prefix="/orgs", tags=["Organizations"])
+app.include_router(user.router, prefix="/users", tags=["Users"])
