@@ -173,7 +173,7 @@ docker-compose up --build
 
 ## Credits / Author
 
-- **Architect & Developer**: The Most High and his son, David. 🚀
+- **Architect & Developer**: David Nwobodo
 
 ---
 
@@ -184,4 +184,4 @@ It is intended not just as code, but as a foundation and showcase of architectur
 
 ---
 
-### 💬 *"Documentation is not just about code, it's about ideas."
+### 💬 "Documentation is not just about code, it's about ideas."
