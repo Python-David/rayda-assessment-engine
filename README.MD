@@ -155,11 +155,13 @@ Rather than covering every edge case at this phase, the focus is on proving that
 
 ### Test Cases (Phase 1)
 
-| Test                          | Purpose                                                 |
-|-------------------------------|----------------------------------------------------------|
-| `test_superadmin_login`       | Confirms superadmin credentials work and token is issued properly. |
-| `test_admin_can_create_user`  | Ensures admins can create users within their org, using JWT.       |
+| Test                           | Purpose                                                                         |
+|--------------------------------|---------------------------------------------------------------------------------|
+| `test_superadmin_login`        | Confirms superadmin credentials work and token is issued properly.              |
 | `test_superadmin_can_create_org` | Validates that only superadmins can create organizations and assign initial admins. |
+| `test_admin_cannot_create_org` | Ensures that admins are strictly forbidden from creating new organizations.     |
+| `test_admin_can_create_user`   | Confirms that admins can create new users within their own organization.        |
+| `test_user_cannot_create_user` | Ensures normal users cannot create any new users or escalate privileges.        |
 
 These foundational tests assert the correct **role boundaries** and **data ownership flows**, which are critical for a secure SaaS platform.
 
