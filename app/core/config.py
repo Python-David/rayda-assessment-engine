@@ -17,6 +17,15 @@ class Settings(BaseSettings):
     INITIAL_ADMIN_EMAIL: str = "admin@testorg.com"
     INITIAL_ADMIN_PASSWORD: str = "AdminPass123!"
 
+    REDIS_BROKER_URL: str = "redis://localhost:6379/0"
+    REDIS_BACKEND_URL: str = "redis://localhost:6379/1"
+
+    CELERY_MAX_RETRIES: int = 3
+    CELERY_RETRY_BACKOFF_BASE: int = 2
+
+    FORCE_SERVICE_FAILURES: int = 0
+    ENABLE_RANDOM_FAILURES: bool = False
+
     class Config:
         env_file = ".env"
         extra = "ignore"

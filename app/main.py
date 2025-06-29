@@ -1,7 +1,19 @@
+import logging
+import sys
+
+from app.core.config import settings
+
+logging.basicConfig(
+    level=settings.LOG_LEVEL,
+    format=settings.LOG_FORMAT,
+    datefmt=settings.LOG_DATE_FORMAT,
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 
-from app.api import user, org
+from app.api import user, org, webhooks
 from app.commands.migrate import run_migrations
 from app.commands.bootstrap import create_initial_superadmin
 from fastapi.middleware.cors import CORSMiddleware
@@ -36,3 +48,4 @@ app.add_middleware(
 
 app.include_router(org.router, prefix="/orgs", tags=["Organizations"])
 app.include_router(user.router, prefix="/users", tags=["Users"])
+app.include_router(webhooks.router, prefix="/webhooks", tags=["Webhooks"])
