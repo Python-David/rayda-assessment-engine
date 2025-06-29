@@ -1,9 +1,12 @@
 import pytest
 
+from app.core.config import settings
+
+
 @pytest.mark.asyncio
-async def test_admin_can_create_user(client):
-    # Login as initial admin
-    login_resp = await client.post("/users/login", data={"username": "admin@testorg.com", "password": "AdminPass123!"})
+async def test_admin_can_create_user(client, initial_admin_user):
+    login_resp = await client.post("/users/login", data={"username": settings.INITIAL_ADMIN_EMAIL, "password": settings.INITIAL_ADMIN_PASSWORD})
+    assert login_resp.status_code == 200
     token = login_resp.json()["access_token"]
 
     user_payload = {
@@ -19,7 +22,7 @@ async def test_admin_can_create_user(client):
 async def test_user_cannot_create_user(client):
     # Login as basic user
     # First create
-    login_admin = await client.post("/users/login", data={"username": "admin@testorg.com", "password": "AdminPass123!"})
+    login_admin = await client.post("/users/login", data={"username": settings.INITIAL_ADMIN_EMAIL, "password": settings.INITIAL_ADMIN_PASSWORD})
     admin_token = login_admin.json()["access_token"]
 
     create_user_payload = {

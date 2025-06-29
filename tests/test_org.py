@@ -1,17 +1,22 @@
 import pytest
 
+from app.core.config import settings
+
+
 @pytest.mark.asyncio
-async def test_superadmin_can_create_org(client):
-    # Login superadmin
-    login_resp = await client.post("/users/login", data={"username": "superadmin@example.com", "password": "SuperSecret123!"})
+async def test_superadmin_can_create_org(client, superadmin_user):
+    login_resp = await client.post("/users/login", data={
+        "username": settings.INITIAL_SUPERADMIN_EMAIL,
+        "password": settings.INITIAL_SUPERADMIN_PASSWORD
+    })
+    assert login_resp.status_code == 200
     token = login_resp.json()["access_token"]
 
-    # Create org
     org_payload = {
         "name": "TestOrg",
         "slug": "testorg",
-        "initial_admin_email": "admin@testorg.com",
-        "initial_admin_password": "AdminPass123!"
+        "initial_admin_email": settings.INITIAL_ADMIN_EMAIL,
+        "initial_admin_password": settings.INITIAL_ADMIN_PASSWORD
     }
     resp = await client.post("/orgs/", json=org_payload, headers={"Authorization": f"Bearer {token}"})
     assert resp.status_code == 200

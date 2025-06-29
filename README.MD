@@ -140,6 +140,62 @@ docker-compose up --build
 
 ---
 
+## Tests
+
+### Philosophy
+
+The test suite is designed to verify the **core multi-tenant foundation and critical workflows**.  
+Rather than covering every edge case at this phase, the focus is on proving that:
+
+- **Authentication and RBAC work correctly**: Only the correct roles can perform specific actions.
+- **Tenant isolation is enforced**: Users and admins can only operate within their allowed scope.
+- **Bootstrapping flows are intact**: Superadmin can create organizations and admins; admins can create users.
+
+---
+
+### Test Cases (Phase 1)
+
+| Test                          | Purpose                                                 |
+|-------------------------------|----------------------------------------------------------|
+| `test_superadmin_login`       | Confirms superadmin credentials work and token is issued properly. |
+| `test_admin_can_create_user`  | Ensures admins can create users within their org, using JWT.       |
+| `test_superadmin_can_create_org` | Validates that only superadmins can create organizations and assign initial admins. |
+
+These foundational tests assert the correct **role boundaries** and **data ownership flows**, which are critical for a secure SaaS platform.
+
+---
+
+### How to run
+
+#### Prerequisites
+
+- Postgres container running (via Docker Compose).
+- Local virtual environment activated (or Dockerized backend service).
+
+#### Commands
+
+```bash
+# Install test dependencies if needed
+pip install pytest pytest-asyncio httpx
+
+# Run all tests
+pytest
+```
+
+Tests live in the `tests/` folder, currently split by features (e.g., `test_user.py`).  
+Fixtures for database and client setup are in `conftest.py`.
+
+---
+
+### Notes
+
+- The test database (`rayda_test_db`) is created dynamically when tests run and dropped after the session completes.  
+- Superadmin and admin fixtures are generated using `.env` settings to avoid hardcoded credentials.  
+- Tests are designed to run **in-memory** using FastAPI’s ASGI integration (no external server needed).
+
+---
+
+
 ## Basic API Endpoints Summary
 
 | Endpoint                      | Method | Role            | Purpose                                      |

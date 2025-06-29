@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     INITIAL_SUPERADMIN_EMAIL: str = "superadmin@example.com"
     INITIAL_SUPERADMIN_PASSWORD: str = "SuperSecretPassword123!"
 
+    INITIAL_ADMIN_EMAIL: str = "admin@testorg.com"
+    INITIAL_ADMIN_PASSWORD: str = "AdminPass123!"
+
     class Config:
         env_file = ".env"
         extra = "ignore"
