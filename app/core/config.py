@@ -26,6 +26,13 @@ class Settings(BaseSettings):
     FORCE_SERVICE_FAILURES: int = 0
     ENABLE_RANDOM_FAILURES: bool = False
 
+    WEBHOOK_RATE_LIMIT_COUNT: int = 10
+    WEBHOOK_RATE_LIMIT_PERIOD: str = "minute"  # could be "second", "hour", "day"
+
+    @property
+    def webhook_rate_limit(self) -> str:
+        return f"{self.WEBHOOK_RATE_LIMIT_COUNT}/{self.WEBHOOK_RATE_LIMIT_PERIOD}"
+
     class Config:
         env_file = ".env"
         extra = "ignore"

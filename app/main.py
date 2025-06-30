@@ -1,6 +1,11 @@
 import logging
 import sys
 
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+
+from app.core.rate_limit import limiter
+
 from app.core.config import settings
 
 logging.basicConfig(
@@ -13,7 +18,7 @@ logging.basicConfig(
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 
-from app.api import user, org, webhooks
+from app.api import user, org, webhooks, integrations
 from app.commands.migrate import run_migrations
 from app.commands.bootstrap import create_initial_superadmin
 from fastapi.middleware.cors import CORSMiddleware
@@ -46,6 +51,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 app.include_router(org.router, prefix="/orgs", tags=["Organizations"])
 app.include_router(user.router, prefix="/users", tags=["Users"])
 app.include_router(webhooks.router, prefix="/webhooks", tags=["Webhooks"])
+app.include_router(integrations.router, prefix="/integrations", tags=["Integrations"])

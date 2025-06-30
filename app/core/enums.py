@@ -69,7 +69,6 @@ class Department(str, enum.Enum):
     marketing = "Marketing"
     hr = "HR"
     finance = "Finance"
-    # Add more as needed
 
 class Title(str, enum.Enum):
     engineer = "Engineer"
@@ -77,5 +76,15 @@ class Title(str, enum.Enum):
     designer = "Designer"
     sales_rep = "Sales Representative"
     hr_manager = "HR Manager"
+
+class WebhookStatus(str, enum.Enum):
+    processed = "processed"
+    failed = "failed"
+    skipped = "skipped"
+
+class IntegrationHealthStatus(str, enum.Enum):
+    healthy = "healthy"
+    degraded = "degraded"
+    error = "error"
 
 

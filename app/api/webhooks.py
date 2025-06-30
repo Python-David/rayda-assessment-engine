@@ -1,6 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 
+from app.core.config import settings
+from app.core.rate_limit import limiter
 from app.schemas.webhooks import (
     UserServiceEvent,
     PaymentServiceEvent,
@@ -20,7 +22,8 @@ def enqueue_event(event: dict, service_enum: ServiceType):
 
 
 @router.post("/user-service")
-async def user_service_webhook(payload: UserServiceEvent | BatchWebhookEvents):
+@limiter.limit(settings.webhook_rate_limit)
+async def user_service_webhook(request: Request, payload: UserServiceEvent | BatchWebhookEvents):
     service_enum = ServiceType.USER
 
     match payload:
@@ -36,7 +39,8 @@ async def user_service_webhook(payload: UserServiceEvent | BatchWebhookEvents):
 
 
 @router.post("/payment-service")
-async def payment_service_webhook(payload: PaymentServiceEvent | BatchWebhookEvents):
+@limiter.limit(settings.webhook_rate_limit)
+async def payment_service_webhook(request: Request, payload: PaymentServiceEvent | BatchWebhookEvents):
     service_enum = ServiceType.PAYMENT
 
     match payload:
@@ -50,9 +54,9 @@ async def payment_service_webhook(payload: PaymentServiceEvent | BatchWebhookEve
 
     return JSONResponse(content={"status": "received"}, status_code=202)
 
-
 @router.post("/communication-service")
-async def communication_service_webhook(payload: CommunicationServiceEvent | BatchWebhookEvents):
+@limiter.limit(settings.webhook_rate_limit)
+async def communication_service_webhook(request: Request, payload: CommunicationServiceEvent | BatchWebhookEvents):
     service_enum = ServiceType.COMMUNICATION
 
     match payload:

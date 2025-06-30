@@ -1,8 +1,8 @@
-"""Initial db snapshot
+"""Initial migration
 
-Revision ID: fb3d27bb9101
+Revision ID: b44dfd07e3da
 Revises: 
-Create Date: 2025-06-29 18:01:42.197734
+Create Date: 2025-06-30 11:46:41.835173
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'fb3d27bb9101'
+revision: str = 'b44dfd07e3da'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -30,6 +30,18 @@ def upgrade() -> None:
     op.create_index(op.f('ix_organizations_id'), 'organizations', ['id'], unique=False)
     op.create_index(op.f('ix_organizations_name'), 'organizations', ['name'], unique=True)
     op.create_index(op.f('ix_organizations_slug'), 'organizations', ['slug'], unique=True)
+    op.create_table('webhook_logs',
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('event_id', sa.String(), nullable=False),
+    sa.Column('service', sa.Enum('USER', 'PAYMENT', 'COMMUNICATION', name='servicetype'), nullable=False),
+    sa.Column('org_id', sa.String(), nullable=False),
+    sa.Column('received_at', sa.DateTime(), nullable=True),
+    sa.Column('status', sa.Enum('processed', 'failed', 'skipped', name='webhookstatus'), nullable=False),
+    sa.Column('payload', sa.JSON(), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('event_id')
+    )
     op.create_table('users',
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('email', sa.String(), nullable=False),
@@ -63,7 +75,7 @@ def upgrade() -> None:
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('user_id', sa.UUID(), nullable=True),
     sa.Column('message_id', sa.String(), nullable=False),
-    sa.Column('status', sa.String(), nullable=False),
+    sa.Column('status', sa.Enum('delivered', 'failed', 'bounced', 'pending', name='communicationstatus'), nullable=False),
     sa.Column('template', sa.String(), nullable=True),
     sa.Column('delivery_time_ms', sa.String(), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
@@ -100,6 +112,7 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_users_external_id'), table_name='users')
     op.drop_index(op.f('ix_users_email'), table_name='users')
     op.drop_table('users')
+    op.drop_table('webhook_logs')
     op.drop_index(op.f('ix_organizations_slug'), table_name='organizations')
     op.drop_index(op.f('ix_organizations_name'), table_name='organizations')
     op.drop_index(op.f('ix_organizations_id'), table_name='organizations')
