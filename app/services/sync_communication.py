@@ -4,16 +4,17 @@ from app.models.organization import Organization
 from app.models.user import User
 from app.db.session import SessionLocal
 from app.utils.logger import get_logger
-from app.schemas.webhooks import CommunicationServiceEvent, MessageDeliveredData, MessageBouncedData
+from app.schemas.webhooks import CommunicationServiceEvent
 
 logger = get_logger()
 
 def sync_communication(event: CommunicationServiceEvent):
     db: Session = SessionLocal()
 
+    data = event.data
+
     try:
         org_id_str = event.organization_id
-        event_type_str = event.event_type
 
         # Validate organization
         org = db.query(Organization).filter(Organization.slug == org_id_str).first()
@@ -21,7 +22,7 @@ def sync_communication(event: CommunicationServiceEvent):
             logger.warning(f"Organization {org_id_str} not found. Skipping communication sync.")
             return
 
-        data = event.data
+
 
         # Find user by recipient email
         user = db.query(User).filter(User.email == data.recipient).first()
@@ -35,7 +36,7 @@ def sync_communication(event: CommunicationServiceEvent):
 
         if comm_log:
             logger.info(f"Updating communication log for message {data.message_id}.")
-            comm_log.status = data.status if hasattr(data, "status") else "bounced"
+            comm_log.status = data.status
             comm_log.delivery_time_ms = str(data.delivery_time_ms) if hasattr(data, "delivery_time_ms") else comm_log.delivery_time_ms
             comm_log.template = data.template or comm_log.template
         else:
@@ -43,7 +44,7 @@ def sync_communication(event: CommunicationServiceEvent):
             comm_log = CommunicationLog(
                 message_id=data.message_id,
                 user_id=user_id,
-                status=data.status if hasattr(data, "status") else "bounced",
+                status=data.status,
                 template=data.template,
                 delivery_time_ms=str(data.delivery_time_ms) if hasattr(data, "delivery_time_ms") else None,
             )

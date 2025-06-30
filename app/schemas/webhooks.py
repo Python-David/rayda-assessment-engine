@@ -2,7 +2,7 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional, Any, List
 from datetime import datetime
 
-from app.core.enums import SubscriptionPlan, BillingCycle
+from app.core.enums import SubscriptionPlan, BillingCycle, CommunicationStatus
 
 
 # --- Common base event ---
@@ -100,7 +100,7 @@ class MessageDeliveredData(BaseModel):
     message_id: str
     recipient: EmailStr
     template: str
-    status: str
+    status: CommunicationStatus
     delivery_time_ms: Optional[int] = None
     esp_message_id: Optional[str] = None
 
