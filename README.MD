@@ -1,245 +1,274 @@
-# Multi-Tenant SaaS Platform Backend
+# Multi-Tenant SaaS Platform Backend with External Integrations
 
 ## Project Overview
 
-This project is a robust, production-grade backend system designed to support a **multi-tenant SaaS platform** with external integration capabilities.  
-It emphasizes **secure tenant isolation**, role-based access control (RBAC), and scalable architecture.  
-
----
+This project is a robust, production-grade backend system designed to support a multi-tenant SaaS platform combined with external API integration capabilities. It emphasizes secure tenant isolation, role-based access control (RBAC), and a scalable, extensible integration engine.
 
 ## Architectural Decisions
 
-- **Multi-Tenant Design**: Each organization (tenant) has isolated data, scoped by `org_id`. This ensures no data leaks between organizations.
-- **No Public Registration**: Instead of letting anyone register arbitrarily, the system enforces controlled onboarding through superadmin-created organizations and admin-created users. This aligns with real-world SaaS practices.
-- **Role-Based Access Control (RBAC)**: Roles determine what actions each user can perform, providing fine-grained security.
-- **PostgreSQL + SQLAlchemy**: Relational database with strong consistency guarantees and SQLAlchemy ORM for flexibility.
-- **FastAPI**: High-performance, modern API framework supporting async workflows.
+### Multi-Tenant Design
 
----
+Each organization (tenant) has fully isolated data, scoped by org_id. This prevents data leaks and enforces strong security boundaries.
 
-## Roles & Permissions Design (Thought Process)
+### Controlled Onboarding (No Public Registration)
 
-### Why no open registration?
+Superadmins create organizations, and admins manage users internally. This aligns with real-world SaaS practices where companies want strict control over who can access their data.
 
-In real SaaS environments, organizations want to control who can access their data and represent their company.  
-Allowing public registration would break this trust model and potentially introduce rogue users.
+### Role-Based Access Control (RBAC)
 
----
+- Superadmin: Global permissions. Can create organizations and assign initial admins.
+- Admin: Scoped to org_id. Can create/manage users in their org.
+- User: Scoped to org_id, manages only their own profile.
 
-### **Superadmin**
+Principles:
 
-- **Responsibilities**:
-  - Create new organizations (tenants).
-  - Assign an initial admin for each new organization.
-- **Scope**:
-  - Global — no org_id restriction.
-- **Rationale**:
-  - Mirrors a SaaS owner or system-level administrator in enterprise systems.
+- Least Privilege: Only necessary permissions.
+- Explicit Control: No implicit escalations.
+- Strict Tenant Isolation: No cross-org actions.
+- Security Over Convenience: No self-service registration.
 
----
+### Tech Stack
 
-### **Admin**
+- FastAPI: High-performance API framework.
+- SQLAlchemy: ORM and DB toolkit.
+- Alembic: Migrations.
+- Pydantic: Validation and settings.
+- PostgreSQL: Database.
+- JWT (python-jose): Authentication.
+- Docker & Docker Compose: Containerization.
+- Celery + Redis + Flower: Async task processing and monitoring.
+- Passlib: Password hashing.
+- SlowAPI: Rate limiting.
 
-- **Responsibilities**:
-  - Create and manage users within their own organization.
-  - Can create both `user` and additional `admin` roles but cannot escalate to superadmin.
-- **Scope**:
-  - Limited to their assigned `org_id`.
-- **Rationale**:
-  - Represents IT admins or team leads who handle internal user management.
+## Phase 1: Multi-Tenant Platform
 
----
+#### Key Features
 
-### **User**
+- JWT-based authentication with role enforcement.
+- Fully scoped API endpoints.
+- Initial superadmin bootstrap.
+- Dynamic organization and user creation.
+- Audit logs for sensitive actions.
+- Role-based permission checks in each route.
 
-- **Responsibilities**:
-  - Manage and view their own profile (represented at this point by this `/me` endpoint).
-- **Scope**:
-  - Strictly limited to self, within their organization.
-- **Rationale**:
-  - Represents normal end-users within an org.
+#### Tests
 
----
+Verified authentication, role enforcement, and data isolation through unit and integration tests.
 
-### Principles Behind Our RBAC
+## Phase 2: External Integration Engine
 
-- **Least Privilege**: Every user only has permissions essential for their role.
-- **Explicit Control**: No hidden escalations or untracked permissions.
-- **Tenant Isolation**: No cross-org actions allowed for admins or users.
-- **Security Over Convenience**: No open sign-ups, no role self-assignment.
+### Design Decisions & Architecture Notes
 
----
+#### Celery + Redis + Flower
 
-## Tech Stack
+Why: Needed to decouple webhook request-response from long-running external sync operations.
 
-- **FastAPI**: Web framework for building APIs quickly and cleanly.
-- **SQLAlchemy**: ORM and database toolkit.
-- **Alembic**: Database migrations (I miss Django).
-- **Pydantic**: Data validation and settings management.
-- **PostgreSQL**: Primary database.
-- **JWT (python-jose)**: Authentication tokens.
-- **Docker & Docker Compose**: Easy uniform environment setup and isolation.
-- **Passlib**: Secure password hashing.
+Setup:
 
----
+- Redis as broker and backend.
+- Flower for real-time monitoring.
+- Celery configured for retries and exponential backoff.
 
-## How it works
+#### Failure Simulation
 
-1. **Superadmin Bootstrap**
-   - Created automatically on first run using `.env` values.
-   - Example (essential):
-     ```
-     INITIAL_SUPERADMIN_EMAIL=superadmin@example.com
-     INITIAL_SUPERADMIN_PASSWORD=SuperSecret123!
-     ```
+Configurable using:
 
-2. **Superadmin Login**
-   - Logs in via `/users/login` or basically via Swagger docs at the point of accessing protected enpoints.
-   - Receives JWT token.
+FORCE_SERVICE_FAILURES=2
+ENABLE_RANDOM_FAILURES=false
 
-3. **Create Organization**
-   - Superadmin uses token to create a new org and assign initial admin via `/orgs/` POST endpoint.
+Deterministic failures to explicitly test retry logic.
 
-4. **Admin Login**
-   - Admin logs in and receives JWT.
+Why: Enables predictable failure scenarios to demonstrate robust retry and error handling during assessment.
 
-5. **Admin Creates Users**
-   - Admin creates additional `user` or `admin` accounts within their org.
+#### Celery Retry Config
 
-6. **Regular User Login**
-   - Can log in for a start, view their own profile (`/users/me`). Other user features can be built upon this.
+Controlled via:
 
----
+CELERY_RETRY_BACKOFF_BASE=2
+CELERY_MAX_RETRIES=3
+
+Exponential backoff (2, 4, 8 seconds). Flexible and environment-specific.
+
+#### Single Integration Queue
+
+A single integration_queue used for clarity.
+
+Why: Simplifies demonstration during assessment. In production, easily extensible to multiple queues (e.g., billing, notifications).
+
+#### New Models: Subscription & CommunicationLog
+
+Subscription: Persistent subscription and billing data for lifecycle and audit.
+
+CommunicationLog: Records notification delivery states for troubleshooting and transparency.
+
+Other Model Updates:
+
+- external_id added to User for webhook mapping.
+- hashed_password made nullable for SSO scenarios.
+- Added User status enum for lifecycle management.
+
+#### RBAC and Webhooks
+
+Webhooks treated as system-level integrations, not user-level actions.
+
+Enforced Rules:
+
+- Organization must exist.
+- Syncs user data within existing orgs.
+- Never auto-create orgs to protect tenant structure.
+
+#### Nullable hashed_password & SSO Lifecycle
+
+Users created by webhooks start with hashed_password = None.
+
+Status set to pending.
+
+Activated later via invite or SSO login.
+
+Security: Users without hashed passwords cannot log in using local credentials until explicitly activated.
+
+## Phase 3: External Webhook Processing & Health Monitoring
+
+### Design Decisions & Architecture Notes
+
+#### Tenant-Aware Webhook Endpoints
+
+Separate endpoints for User, Payment, and Communication services.
+
+Supports both single and batch payloads (via Pydantic unions).
+
+Async processing using Celery (integration_queue).
+
+Why: Batch support increases throughput (e.g., Stripe). Pydantic ensures strong validation and security.
+
+#### Idempotency Handling
+
+Every event includes a unique event_id.
+
+Events checked in WebhookLog before processing to skip duplicates.
+
+Why: Prevents duplicate writes and ensures safe replays by external services.
+
+#### Webhook Logging & Tracking
+
+Every webhook stored in WebhookLog.
+
+Contains event_id, service, org_id, status, and payload snapshot.
+
+Why: Full auditability, historical tracking, and easier debugging.
+
+#### Integration Health Endpoint
+
+/integrations/status: Shows health summary per service.
+
+Tracks:
+
+- Last successful event.
+- Last event ID.
+- Computed status: healthy, degraded, or error.
+
+Why: Provides admins with integration observability.
+
+#### Rate Limiting via SlowAPI
+
+Per-IP rate limiting enforced on webhooks.
+
+Controlled via environment variables:
+
+WEBHOOK_RATE_LIMIT_COUNT
+WEBHOOK_RATE_LIMIT_PERIOD
+
+Example: 10/minute.
+
+Why: Protects backend from overload and ensures fair usage.
+
+#### External Service Simulation & Failures
+
+User, Payment, and Communication services simulated.
+
+Deterministic error behavior via FORCE_SERVICE_FAILURES and ENABLE_RANDOM_FAILURES.
+
+Why: Enables controlled end-to-end testing, supports CI stability.
+
+#### Testing Strategy
+
+Heavy use of patching to isolate sync logic.
+
+Webhook tests verify idempotency, routing correctness, and rate limiting.
+
+Authenticated flow checks ensure RBAC enforcement during webhook integrations.
+
+## Security Considerations
+
+- JWT Authentication: Strict role checks.
+- Tenant Isolation: Scoped strictly to org_id.
+- Idempotency: Blocks replay and duplicate writes.
+- Strict Validation: Pydantic models at every input layer.
+- Rate Limiting: Additional defense layer.
+- Password Hashing: Bcrypt via Passlib.
+
+## Future Improvements
+
+- Fully integrated audit logs for webhooks and external sync.
+- Circuit breaker pattern for external APIs.
+- Advanced bulk webhook support with granular error collection.
+- Dynamic queue scaling with separate priority queues.
+- Production-grade SSO onboarding flow.
 
 ## Setup & Running
 
 ### Environment Variables
 
-```
-DATABASE_URL=postgresql+psycopg2://postgres:postgres@db:5432/rayda_db
-JWT_SECRET_KEY=your_super_secret_here
-JWT_ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=1440
-INITIAL_SUPERADMIN_EMAIL=superadmin@example.com
-INITIAL_SUPERADMIN_PASSWORD=SuperSecret123!
-```
-
-There is a `.env.example` file in the project folder showing the necessary variables for startup
-
----
+.env.template
 
 ### Docker
 
-```bash
 docker-compose up --build
-```
 
 - Automatically runs migrations.
-- Boots superadmin account.
-- Starts FastAPI server on `http://0.0.0.0:8000`.
-
----
+- Boots superadmin.
+- Starts FastAPI at http://0.0.0.0:8000.
 
 ## Tests
 
-### Philosophy
-
-The test suite is designed to verify the **core multi-tenant foundation and critical workflows**.  
-Rather than covering every edge case at this phase, the focus is on proving that:
-
-- **Authentication and RBAC work correctly**: Only the correct roles can perform specific actions.
-- **Tenant isolation is enforced**: Users and admins can only operate within their allowed scope.
-- **Bootstrapping flows are intact**: Superadmin can create organizations and admins; admins can create users.
-
----
-
-### Test Cases (Phase 1)
-
-| Test                           | Purpose                                                                         |
-|--------------------------------|---------------------------------------------------------------------------------|
-| `test_superadmin_login`        | Confirms superadmin credentials work and token is issued properly.              |
-| `test_superadmin_can_create_org` | Validates that only superadmins can create organizations and assign initial admins. |
-| `test_admin_cannot_create_org` | Ensures that admins are strictly forbidden from creating new organizations.     |
-| `test_admin_can_create_user`   | Confirms that admins can create new users within their own organization.        |
-| `test_user_cannot_create_user` | Ensures normal users cannot create any new users or escalate privileges.        |
-
-These foundational tests assert the correct **role boundaries** and **data ownership flows**, which are critical for a secure SaaS platform.
-
----
-
 ### How to run
 
-#### Prerequisites
-
-- Postgres container running (via Docker Compose).
-- Local virtual environment activated (or Dockerized backend service).
-
-#### Commands
-
-```bash
-# Install test dependencies if needed
 pip install pytest pytest-asyncio httpx
-
-# Run all tests
 pytest
-```
 
-Tests live in the `tests/` folder, currently split by features (e.g., `test_user.py`).  
-Fixtures for database and client setup are in `conftest.py`.
+- Tests cover RBAC, tenant isolation, webhook flows, idempotency, rate limiting, and audit logging.
+- Audit log tests verify that all critical data modifications (e.g., user creation, organization creation, webhook sync events) are consistently logged in the audit trail.
+- Fixtures and patching isolate side effects and async tasks to ensure repeatable, reliable tests.
 
----
+## API Endpoints Summary
 
-### Notes
-
-- The test database (`rayda_test_db`) is created dynamically when tests run and dropped after the session completes.  
-- Superadmin and admin fixtures are generated using `.env` settings to avoid hardcoded credentials.  
-- Tests are designed to run **in-memory** using FastAPI’s ASGI integration (no external server needed).
-
----
-
-
-## Basic API Endpoints Summary
-
-| Endpoint                      | Method | Role            | Purpose                                      |
-|-------------------------------|---------|----------------|----------------------------------------------|
-| `/users/login`                | POST    | All            | Obtain JWT token.                            |
-| `/users/me`                   | GET     | All            | Get own profile.                             |
-| `/orgs/`                      | POST    | Superadmin | Create new org & initial admin.              |
-| `/orgs/{org_id}`             | GET     | All            | Get org info.                                |
-| `/users/`                    | POST    | Admin        | Create users and/or other admins inside org. |
-
----
-
-## Security Notes
-
-- **JWT Authentication**: All secure routes require a Bearer token.
-- **Password Hashing**: Using bcrypt via passlib.
-- **Role Enforcement**: Strict checks at each route level.
-- **Tenant Data Isolation**: All user actions scoped to `org_id`.
-
----
+| Endpoint                       | Method | Role         | Purpose                                              |
+|--------------------------------|---------|--------------|------------------------------------------------------|
+| /users/login                   | POST    | All          | JWT login.                                          |
+| /users/me                      | GET     | All          | Get current user profile.                           |
+| /users/                        | POST    | Admin        | Create users and/or additional admins in org.       |
+| /orgs/                         | POST    | Superadmin   | Create organization and initial admin.              |
+| /orgs/{org_id}                | GET     | All          | Get organization details.                           |
+| /integrations/status          | GET     | Admin, Superadmin | View external integrations health summary.      |
+| /webhooks/user-service        | POST    | System       | Receive user service webhooks (single/batch).      |
+| /webhooks/payment-service     | POST    | System       | Receive payment service webhooks (single/batch).   |
+| /webhooks/communication-service | POST | System       | Receive communication service webhooks (single/batch). |
 
 ## Future Improvements
 
-- Invitation-based user onboarding with email confirmation.
-- Fully integrated audit logs for all data modifications.
-- External service webhooks with retry logic (Phase 2).
-- SSO integrations (SAML/OIDC).
-- Circuit breaker and external API health monitoring.
+- Fully integrated audit logs for webhooks and external sync.
+- Circuit breaker pattern for external APIs.
+- Advanced bulk webhook support with granular error collection.
+- Dynamic queue scaling with separate priority queues.
+- Production-grade SSO onboarding flow.
+- Additional update and delete endpoints for users and organizations to support full lifecycle management and administrative flexibility.
 
----
+## Credits
 
-## Credits / Author
-
-- **Architect & Developer**: David Nwobodo
-
----
+Architect & Developer: David Nwobodo
 
 ## Final Note
 
-This project emphasizes **secure design**, **explicit access control**, and **real-world SaaS workflows**.  
-It is intended not just as code, but as a foundation and showcase of architectural clarity and thoughtful backend design.
+This project showcases a secure, scalable, and extensible SaaS backend architecture, with a strong focus on robust external integrations. It emphasizes thoughtful design, explicit security boundaries, and real-world operational concerns.
 
----
-
-### 💬 "Documentation is not just about code, it's about ideas."
+"Documentation is not just about code, it's about ideas and ideas live forever."

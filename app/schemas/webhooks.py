@@ -1,11 +1,12 @@
-from pydantic import BaseModel, EmailStr
-from typing import Optional, Any, List
 from datetime import datetime
+from typing import Any, List, Optional
 
-from app.core.enums import SubscriptionPlan, BillingCycle, CommunicationStatus
+from pydantic import BaseModel, EmailStr
 
+from app.core.enums import BillingCycle, CommunicationStatus, SubscriptionPlan
 
 # --- Common base event ---
+
 
 class Metadata(BaseModel):
     source: str
@@ -16,6 +17,7 @@ class Metadata(BaseModel):
     campaign_id: Optional[str] = None
     notification_type: Optional[str] = None
 
+
 class BaseWebhookEvent(BaseModel):
     event_type: str
     event_id: str
@@ -23,7 +25,9 @@ class BaseWebhookEvent(BaseModel):
     organization_id: str
     metadata: Metadata
 
+
 # --- User Service Events ---
+
 
 class UserData(BaseModel):
     user_id: str
@@ -35,6 +39,7 @@ class UserData(BaseModel):
     status: Optional[str]
     hire_date: Optional[str]
 
+
 class UserCreatedData(BaseModel):
     user_id: str
     email: EmailStr
@@ -45,19 +50,23 @@ class UserCreatedData(BaseModel):
     status: str
     hire_date: Optional[datetime] = None
 
+
 class UserUpdatedChanges(BaseModel):
     department: Optional[str] = None
     title: Optional[str] = None
     manager_id: Optional[str] = None
 
+
 class UserUpdatedPrevious(BaseModel):
     department: Optional[str] = None
     title: Optional[str] = None
+
 
 class UserUpdatedData(BaseModel):
     user_id: str
     changes: UserUpdatedChanges
     previous_values: Optional[UserUpdatedPrevious] = None
+
 
 class UserDeletedData(BaseModel):
     user_id: str
@@ -66,10 +75,13 @@ class UserDeletedData(BaseModel):
     termination_date: Optional[datetime] = None
     data_retention_policy: Optional[str] = None
 
+
 class UserServiceEvent(BaseWebhookEvent):
     data: UserData
 
+
 # --- Payment Service Events ---
+
 
 class SubscriptionCreatedData(BaseModel):
     subscription_id: str
@@ -81,6 +93,7 @@ class SubscriptionCreatedData(BaseModel):
     currency: str
     trial_end: Optional[datetime]
 
+
 class PaymentFailedData(BaseModel):
     payment_id: str
     subscription_id: str
@@ -91,10 +104,13 @@ class PaymentFailedData(BaseModel):
     retry_at: Optional[datetime] = None
     attempt_number: Optional[int] = None
 
+
 class PaymentServiceEvent(BaseWebhookEvent):
     data: SubscriptionCreatedData | PaymentFailedData
 
+
 # --- Communication Service Events ---
+
 
 class MessageDeliveredData(BaseModel):
     message_id: str
@@ -104,6 +120,7 @@ class MessageDeliveredData(BaseModel):
     delivery_time_ms: Optional[int] = None
     esp_message_id: Optional[str] = None
 
+
 class MessageBouncedData(BaseModel):
     message_id: str
     recipient: EmailStr
@@ -112,10 +129,13 @@ class MessageBouncedData(BaseModel):
     bounce_type: str
     esp_bounce_code: Optional[str] = None
 
+
 class CommunicationServiceEvent(BaseWebhookEvent):
     data: MessageDeliveredData | MessageBouncedData
 
+
 # --- Batch wrapper ---
+
 
 class BatchWebhookEvents(BaseModel):
     events: List[BaseWebhookEvent]

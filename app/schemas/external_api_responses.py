@@ -1,6 +1,8 @@
-from pydantic import BaseModel
-from typing import Optional, List
 from datetime import datetime
+from typing import List, Optional
+
+from pydantic import BaseModel
+
 
 class ExternalUserData(BaseModel):
     user_id: str
@@ -14,15 +16,18 @@ class ExternalUserData(BaseModel):
     hire_date: Optional[str]
     last_updated: Optional[datetime]
 
+
 class ExternalUserSuccessResponse(BaseModel):
     status: str
     data: ExternalUserData
+
 
 class ExternalUserErrorResponse(BaseModel):
     status: str
     error_code: str
     message: str
     timestamp: datetime
+
 
 class ExternalUserSummary(BaseModel):
     user_id: str
@@ -31,19 +36,23 @@ class ExternalUserSummary(BaseModel):
     last_name: Optional[str]
     status: str
 
+
 class Pagination(BaseModel):
     total: int
     page: int
     per_page: int
     has_more: bool
 
+
 class ExternalUserListData(BaseModel):
     users: List[ExternalUserSummary]
     pagination: Pagination
 
+
 class ExternalUserListSuccessResponse(BaseModel):
     status: str
     data: ExternalUserListData
+
 
 class ExternalSubscriptionData(BaseModel):
     subscription_id: str
@@ -56,9 +65,11 @@ class ExternalSubscriptionData(BaseModel):
     currency: str
     payment_method: Optional[str]
 
+
 class ExternalSubscriptionSuccessResponse(BaseModel):
     status: str
     data: ExternalSubscriptionData
+
 
 class ExternalSubscriptionErrorResponse(BaseModel):
     status: str
@@ -66,10 +77,12 @@ class ExternalSubscriptionErrorResponse(BaseModel):
     message: str
     timestamp: datetime
 
+
 class ExternalCustomerUsageMetrics(BaseModel):
     api_calls: int
     storage_gb: float
     compute_hours: float
+
 
 class ExternalCustomerUsageData(BaseModel):
     customer_id: str
@@ -78,9 +91,11 @@ class ExternalCustomerUsageData(BaseModel):
     overage_charges: float
     total_amount: float
 
+
 class ExternalCustomerUsageSuccessResponse(BaseModel):
     status: str
     data: ExternalCustomerUsageData
+
 
 class ExternalMessageData(BaseModel):
     message_id: str
@@ -89,9 +104,11 @@ class ExternalMessageData(BaseModel):
     opened_at: Optional[datetime] = None
     clicked_at: Optional[datetime] = None
 
+
 class ExternalMessageSuccessResponse(BaseModel):
     status: str
     data: ExternalMessageData
+
 
 class ExternalMessageErrorResponse(BaseModel):
     status: str

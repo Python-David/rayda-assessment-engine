@@ -1,15 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from app.db.session import get_db
-from app.models.webhooks import WebhookLog
-from app.models.user import User
-from app.core.enums import ServiceType, WebhookStatus, UserRole
 from app.core.auth import get_current_active_user
-from app.schemas.integrations import ServiceIntegrationStatus, IntegrationStatusResponse
+from app.core.enums import ServiceType, UserRole, WebhookStatus
+from app.db.session import get_db
+from app.models.user import User
+from app.models.webhooks import WebhookLog
+from app.schemas.integrations import IntegrationStatusResponse, ServiceIntegrationStatus
 
 router = APIRouter()
+
 
 @router.get("/status", response_model=IntegrationStatusResponse)
 def integration_status(
@@ -36,21 +36,28 @@ def integration_status(
         JSON object with keys as service names and values as status details.
     """
     if current_user.role not in [UserRole.admin, UserRole.superadmin]:
-        raise HTTPException(status_code=403, detail="Only admins can view integration status.")
+        raise HTTPException(
+            status_code=403, detail="Only admins can view integration status."
+        )
 
     statuses = {}
 
     for service in ServiceType:
         success_log = (
             db.query(WebhookLog)
-            .filter(WebhookLog.service == service, WebhookLog.status == WebhookStatus.processed)
+            .filter(
+                WebhookLog.service == service,
+                WebhookLog.status == WebhookStatus.processed,
+            )
             .order_by(WebhookLog.created_at.desc())
             .first()
         )
 
         recent_failure = (
             db.query(WebhookLog)
-            .filter(WebhookLog.service == service, WebhookLog.status == WebhookStatus.failed)
+            .filter(
+                WebhookLog.service == service, WebhookLog.status == WebhookStatus.failed
+            )
             .order_by(WebhookLog.created_at.desc())
             .first()
         )

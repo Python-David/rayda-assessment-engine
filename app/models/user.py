@@ -1,9 +1,10 @@
-from sqlalchemy import Column, String, ForeignKey, Enum
-from sqlalchemy.dialects.postgresql import UUID
 import uuid
 
+from sqlalchemy import Column, Enum, ForeignKey, String
+from sqlalchemy.dialects.postgresql import UUID
+
+from app.core.enums import Department, Title, UserRole, UserStatus
 from app.db.base import Base
-from app.core.enums import UserRole, UserStatus, Department, Title
 
 
 class User(Base):

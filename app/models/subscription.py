@@ -1,9 +1,11 @@
-from sqlalchemy import Column, String, Float, ForeignKey, Enum, DateTime
-from sqlalchemy.dialects.postgresql import UUID
 import uuid
 
-from app.core.enums import SubscriptionPlan, BillingCycle
+from sqlalchemy import Column, DateTime, Enum, Float, ForeignKey, String
+from sqlalchemy.dialects.postgresql import UUID
+
+from app.core.enums import BillingCycle, SubscriptionPlan
 from app.db.base import Base
+
 
 class Subscription(Base):
     __tablename__ = "subscriptions"

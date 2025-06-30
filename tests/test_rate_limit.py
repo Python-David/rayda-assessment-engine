@@ -14,6 +14,7 @@ Highlights:
 - Confirms that SlowAPI is configured correctly and active in the FastAPI stack.
 - Ensures real-world simulation of repeated requests from the same authenticated client.
 """
+
 from unittest.mock import patch
 
 import pytest
@@ -25,10 +26,13 @@ from tests.data.sample_webhook_events import communication_event
 
 @pytest.mark.asyncio
 async def test_rate_limit_exceeded(client, superadmin_user, test_org):
-    login_resp = await client.post("/users/login", data={
-        "username": settings.INITIAL_SUPERADMIN_EMAIL,
-        "password": settings.INITIAL_SUPERADMIN_PASSWORD
-    })
+    login_resp = await client.post(
+        "/users/login",
+        data={
+            "username": settings.INITIAL_SUPERADMIN_EMAIL,
+            "password": settings.INITIAL_SUPERADMIN_PASSWORD,
+        },
+    )
     assert login_resp.status_code == 200
     token = login_resp.json()["access_token"]
 
@@ -36,10 +40,16 @@ async def test_rate_limit_exceeded(client, superadmin_user, test_org):
 
     with patch("app.services.tasks.process_event.apply_async"):
         for i in range(settings.WEBHOOK_RATE_LIMIT_COUNT):
-            resp = await client.post("/webhooks/communication-service", json=communication_event, headers=headers)
+            resp = await client.post(
+                "/webhooks/communication-service",
+                json=communication_event,
+                headers=headers,
+            )
             assert resp.status_code == status.HTTP_202_ACCEPTED
 
         # One more to exceed
-        resp = await client.post("/webhooks/communication-service", json=communication_event, headers=headers)
+        resp = await client.post(
+            "/webhooks/communication-service", json=communication_event, headers=headers
+        )
         assert resp.status_code == status.HTTP_429_TOO_MANY_REQUESTS
         assert "Rate limit exceeded" in resp.text

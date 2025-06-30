@@ -1,16 +1,16 @@
 import pytest
 import pytest_asyncio
-from httpx import AsyncClient, ASGITransport
-from sqlalchemy import create_engine
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy_utils import create_database, database_exists, drop_database
 
 from app.core.auth import get_password_hash
-from app.core.enums import UserRole, UserStatus, Department, Title
-from app.main import app
-from app.db.session import get_db
-from app.db.base import Base
 from app.core.config import settings
+from app.core.enums import Department, Title, UserRole, UserStatus
+from app.db.base import Base
+from app.db.session import get_db
+from app.main import app
 from app.models.organization import Organization
 from app.models.user import User
 
@@ -31,13 +31,28 @@ def setup_database():
     drop_database(TEST_DATABASE_URL)
 
 
-@pytest.fixture()
+@pytest.fixture(scope="function")
 def db_session():
     db = TestingSessionLocal()
+
+    # Optional: reset tables
+    db.execute(text("TRUNCATE TABLE audit_logs RESTART IDENTITY CASCADE;"))
+    db.execute(text("TRUNCATE TABLE users RESTART IDENTITY CASCADE;"))
+    db.execute(text("TRUNCATE TABLE organizations RESTART IDENTITY CASCADE;"))
+    db.commit()
+
     try:
         yield db
     finally:
         db.close()
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_limiter():
+    from app.main import limiter
+
+    limiter._storage.reset()
+
 
 @pytest_asyncio.fixture()
 async def client(db_session):
@@ -56,13 +71,17 @@ async def client(db_session):
 
 @pytest_asyncio.fixture()
 async def superadmin_user(db_session):
-    user = db_session.query(User).filter_by(email=settings.INITIAL_SUPERADMIN_EMAIL).first()
+    user = (
+        db_session.query(User)
+        .filter_by(email=settings.INITIAL_SUPERADMIN_EMAIL)
+        .first()
+    )
     if user is None:
         hashed_pw = get_password_hash(settings.INITIAL_SUPERADMIN_PASSWORD)
         user = User(
             email=settings.INITIAL_SUPERADMIN_EMAIL,
             hashed_password=hashed_pw,
-            role=UserRole.superadmin
+            role=UserRole.superadmin,
         )
         db_session.add(user)
         db_session.commit()
@@ -71,19 +90,21 @@ async def superadmin_user(db_session):
 
 
 @pytest_asyncio.fixture()
-async def initial_admin_user(db_session):
+async def initial_admin_user(db_session, test_org):
     user = db_session.query(User).filter_by(email=settings.INITIAL_ADMIN_EMAIL).first()
     if user is None:
         hashed_pw = get_password_hash(settings.INITIAL_ADMIN_PASSWORD)
         user = User(
             email=settings.INITIAL_ADMIN_EMAIL,
             hashed_password=hashed_pw,
-            role=UserRole.admin
+            role=UserRole.admin,
+            org_id=test_org.id,
         )
         db_session.add(user)
         db_session.commit()
         db_session.refresh(user)
     return user
+
 
 @pytest_asyncio.fixture()
 async def test_org(db_session):
@@ -98,6 +119,7 @@ async def test_org(db_session):
         db_session.refresh(org)
     return org
 
+
 @pytest_asyncio.fixture()
 async def test_user(db_session, test_org):
     user = db_session.query(User).filter_by(external_id="cust_sync_001").first()
@@ -107,15 +129,14 @@ async def test_user(db_session, test_org):
             email="customer@example.com",
             first_name="Customer",
             last_name="Example",
-            hashed_password = get_password_hash("test_user_password"),
+            hashed_password=get_password_hash("test_user_password"),
             role=UserRole.user,
             status=UserStatus.active,
             department=Department.finance,
             title=Title.hr_manager,
-            org_id=test_org.id
+            org_id=test_org.id,
         )
         db_session.add(user)
         db_session.commit()
         db_session.refresh(user)
     return user
-

@@ -4,28 +4,28 @@ import sys
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
-from app.core.rate_limit import limiter
-
 from app.core.config import settings
+from app.core.rate_limit import limiter
 
 logging.basicConfig(
     level=settings.LOG_LEVEL,
     format=settings.LOG_FORMAT,
     datefmt=settings.LOG_DATE_FORMAT,
-    handlers=[logging.StreamHandler(sys.stdout)]
+    handlers=[logging.StreamHandler(sys.stdout)],
 )
 
-from fastapi import FastAPI
 from contextlib import asynccontextmanager
 
-from app.api import user, org, webhooks, integrations
-from app.commands.migrate import run_migrations
-from app.commands.bootstrap import create_initial_superadmin
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api import integrations, org, user, webhooks
+from app.commands.bootstrap import create_initial_superadmin
+from app.commands.migrate import run_migrations
 from app.utils.logger import get_logger
 
 logger = get_logger("startup")
+
 
 @asynccontextmanager
 async def lifespan(app_instance: FastAPI):
@@ -40,6 +40,7 @@ async def lifespan(app_instance: FastAPI):
 
     yield
     logger.info("Application shutting down...")
+
 
 app = FastAPI(title="Multi-Tenant SaaS Platform", lifespan=lifespan)
 

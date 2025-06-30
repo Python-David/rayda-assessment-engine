@@ -18,59 +18,80 @@ Highlights:
 
 These tests collectively validate the robustness and correctness of the integration health reporting mechanism.
 """
+
 import pytest
 
 from app.core.config import settings
-from app.models.webhooks import WebhookLog
 from app.core.enums import ServiceType, WebhookStatus
+from app.models.webhooks import WebhookLog
+
 
 @pytest.mark.asyncio
 async def test_admin_can_fetch_status(client, db_session, superadmin_user, test_org):
-    login_resp = await client.post("/users/login", data={
-        "username": settings.INITIAL_SUPERADMIN_EMAIL,
-        "password": settings.INITIAL_SUPERADMIN_PASSWORD
-    })
+    login_resp = await client.post(
+        "/users/login",
+        data={
+            "username": settings.INITIAL_SUPERADMIN_EMAIL,
+            "password": settings.INITIAL_SUPERADMIN_PASSWORD,
+        },
+    )
     assert login_resp.status_code == 200
     token = login_resp.json()["access_token"]
 
-    resp = await client.get("/integrations/status", headers={"Authorization": f"Bearer {token}"})
+    resp = await client.get(
+        "/integrations/status", headers={"Authorization": f"Bearer {token}"}
+    )
     assert resp.status_code == 200
     json_data = resp.json()
     assert "user_service" in json_data
     assert "payment_service" in json_data
     assert "communication_service" in json_data
 
+
 @pytest.mark.asyncio
 async def test_non_admin_forbidden(client, db_session, test_user):
-    login_resp = await client.post("/users/login", data={
-        "username": test_user.email,
-        "password": "test_user_password"
-    })
+    login_resp = await client.post(
+        "/users/login",
+        data={"username": test_user.email, "password": "test_user_password"},
+    )
     token = login_resp.json()["access_token"]
 
-    resp = await client.get("/integrations/status", headers={"Authorization": f"Bearer {token}"})
+    resp = await client.get(
+        "/integrations/status", headers={"Authorization": f"Bearer {token}"}
+    )
     assert resp.status_code == 403
 
+
 @pytest.mark.asyncio
-async def test_status_shows_error_when_no_success_logs(client, db_session, superadmin_user, test_org):
-    login_resp = await client.post("/users/login", data={
-        "username": settings.INITIAL_SUPERADMIN_EMAIL,
-        "password": settings.INITIAL_SUPERADMIN_PASSWORD
-    })
+async def test_status_shows_error_when_no_success_logs(
+    client, db_session, superadmin_user, test_org
+):
+    login_resp = await client.post(
+        "/users/login",
+        data={
+            "username": settings.INITIAL_SUPERADMIN_EMAIL,
+            "password": settings.INITIAL_SUPERADMIN_PASSWORD,
+        },
+    )
     token = login_resp.json()["access_token"]
 
     db_session.query(WebhookLog).delete()
     db_session.commit()
 
-    resp = await client.get("/integrations/status", headers={"Authorization": f"Bearer {token}"})
+    resp = await client.get(
+        "/integrations/status", headers={"Authorization": f"Bearer {token}"}
+    )
     data = resp.json()
 
     assert data["user_service"]["status"] == "error"
     assert data["payment_service"]["status"] == "error"
     assert data["communication_service"]["status"] == "error"
 
+
 @pytest.mark.asyncio
-async def test_status_healthy_when_success_and_no_failures(client, db_session, superadmin_user, test_org):
+async def test_status_healthy_when_success_and_no_failures(
+    client, db_session, superadmin_user, test_org
+):
     db_session.query(WebhookLog).delete()
     db_session.commit()
 
@@ -79,24 +100,32 @@ async def test_status_healthy_when_success_and_no_failures(client, db_session, s
         service=ServiceType.USER,
         org_id="org_001",
         status=WebhookStatus.processed,
-        payload={}
+        payload={},
     )
     db_session.add(success_log)
     db_session.commit()
 
-    login_resp = await client.post("/users/login", data={
-        "username": settings.INITIAL_SUPERADMIN_EMAIL,
-        "password": settings.INITIAL_SUPERADMIN_PASSWORD
-    })
+    login_resp = await client.post(
+        "/users/login",
+        data={
+            "username": settings.INITIAL_SUPERADMIN_EMAIL,
+            "password": settings.INITIAL_SUPERADMIN_PASSWORD,
+        },
+    )
     token = login_resp.json()["access_token"]
 
-    resp = await client.get("/integrations/status", headers={"Authorization": f"Bearer {token}"})
+    resp = await client.get(
+        "/integrations/status", headers={"Authorization": f"Bearer {token}"}
+    )
     data = resp.json()
 
     assert data["user_service"]["status"] == "healthy"
 
+
 @pytest.mark.asyncio
-async def test_status_degraded_when_failure_after_success(client, db_session, superadmin_user, test_org):
+async def test_status_degraded_when_failure_after_success(
+    client, db_session, superadmin_user, test_org
+):
     db_session.query(WebhookLog).delete()
     db_session.commit()
 
@@ -105,7 +134,7 @@ async def test_status_degraded_when_failure_after_success(client, db_session, su
         service=ServiceType.USER,
         org_id="org_001",
         status=WebhookStatus.processed,
-        payload={}
+        payload={},
     )
     db_session.add(success_log)
     db_session.commit()
@@ -115,18 +144,23 @@ async def test_status_degraded_when_failure_after_success(client, db_session, su
         service=ServiceType.USER,
         org_id="org_001",
         status=WebhookStatus.failed,
-        payload={}
+        payload={},
     )
     db_session.add(failure_log)
     db_session.commit()
 
-    login_resp = await client.post("/users/login", data={
-        "username": settings.INITIAL_SUPERADMIN_EMAIL,
-        "password": settings.INITIAL_SUPERADMIN_PASSWORD
-    })
+    login_resp = await client.post(
+        "/users/login",
+        data={
+            "username": settings.INITIAL_SUPERADMIN_EMAIL,
+            "password": settings.INITIAL_SUPERADMIN_PASSWORD,
+        },
+    )
     token = login_resp.json()["access_token"]
 
-    resp = await client.get("/integrations/status", headers={"Authorization": f"Bearer {token}"})
+    resp = await client.get(
+        "/integrations/status", headers={"Authorization": f"Bearer {token}"}
+    )
     data = resp.json()
 
     assert data["user_service"]["status"] == "degraded"

@@ -1,16 +1,22 @@
 from datetime import datetime
 
-from app.schemas.external_api_responses import ExternalUserSuccessResponse, ExternalUserErrorResponse, \
-    ExternalUserListSuccessResponse
+from app.core.enums import ServiceType
+from app.schemas.external_api_responses import (
+    ExternalUserErrorResponse,
+    ExternalUserListSuccessResponse,
+    ExternalUserSuccessResponse,
+)
 from app.schemas.webhooks import UserData
 from app.services.external_mocks import mock_responses
 from app.services.external_mocks.shared import simulate_failure
 from app.utils.logger import get_logger
-from app.core.enums import ServiceType
 
 logger = get_logger()
 
-def process_user(data: UserData) -> ExternalUserSuccessResponse | ExternalUserErrorResponse:
+
+def process_user(
+    data: UserData,
+) -> ExternalUserSuccessResponse | ExternalUserErrorResponse:
     """
     Simulated external User Management Service.
 

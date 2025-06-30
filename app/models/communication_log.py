@@ -1,10 +1,12 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey, Enum
+import uuid
+
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
-import uuid
 
 from app.core.enums import CommunicationStatus
 from app.db.base import Base
+
 
 class CommunicationLog(Base):
     __tablename__ = "communication_logs"

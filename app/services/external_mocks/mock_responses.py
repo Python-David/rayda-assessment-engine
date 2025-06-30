@@ -1,10 +1,23 @@
 from datetime import datetime
 
-from app.schemas.external_api_responses import ExternalUserErrorResponse, ExternalUserSuccessResponse, ExternalUserData, \
-    ExternalUserListSuccessResponse, ExternalUserListData, ExternalUserSummary, Pagination, \
-    ExternalSubscriptionSuccessResponse, ExternalSubscriptionData, ExternalCustomerUsageSuccessResponse, \
-    ExternalCustomerUsageData, ExternalCustomerUsageMetrics, ExternalSubscriptionErrorResponse, \
-    ExternalMessageSuccessResponse, ExternalMessageData, ExternalMessageErrorResponse
+from app.schemas.external_api_responses import (
+    ExternalCustomerUsageData,
+    ExternalCustomerUsageMetrics,
+    ExternalCustomerUsageSuccessResponse,
+    ExternalMessageData,
+    ExternalMessageErrorResponse,
+    ExternalMessageSuccessResponse,
+    ExternalSubscriptionData,
+    ExternalSubscriptionErrorResponse,
+    ExternalSubscriptionSuccessResponse,
+    ExternalUserData,
+    ExternalUserErrorResponse,
+    ExternalUserListData,
+    ExternalUserListSuccessResponse,
+    ExternalUserSuccessResponse,
+    ExternalUserSummary,
+    Pagination,
+)
 
 user_success_response = ExternalUserSuccessResponse(
     status="success",
@@ -18,15 +31,15 @@ user_success_response = ExternalUserSuccessResponse(
         status="active",
         manager_id="ext_user_00001",
         hire_date="2022-01-15",
-        last_updated=datetime.now()
-    )
+        last_updated=datetime.now(),
+    ),
 )
 
 user_error_response = ExternalUserErrorResponse(
     status="error",
     error_code="USER_NOT_FOUND",
     message="User with ID ext_user_99999 not found",
-    timestamp=datetime.now()
+    timestamp=datetime.now(),
 )
 
 user_list_success_response = ExternalUserListSuccessResponse(

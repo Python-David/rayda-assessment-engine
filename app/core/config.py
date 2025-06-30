@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 
+
 class Settings(BaseSettings):
     DATABASE_URL: str
     TEST_DATABASE_URL: str | None = None
@@ -37,5 +38,5 @@ class Settings(BaseSettings):
         env_file = ".env"
         extra = "ignore"
 
-settings = Settings()
 
+settings = Settings()
